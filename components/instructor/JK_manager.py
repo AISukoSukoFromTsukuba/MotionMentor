@@ -56,5 +56,3 @@ def JK_manager(input=""):
 
     completion = response["choices"][0]["message"]["content"]
     return completion
-
-print(JK_manager("スクワットが4回できました。"))

@@ -56,5 +56,3 @@ def jordge(input=""):
 
     completion = response["choices"][0]["message"]["content"]
     return completion
-
-print(jordge("スクワットが10回できました。"))
