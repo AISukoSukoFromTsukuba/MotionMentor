@@ -1,6 +1,8 @@
 import streamlit as st
 from components import coach
 
+st.set_page_config(layout="wide")
+
 
 def main_page():
     st.markdown("## MotionMentor")

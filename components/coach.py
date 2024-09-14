@@ -1,4 +1,8 @@
 import streamlit as st
+import os
+import sys
+
+sys.path.append(os.pardir)
 
 
 def coach_page():
@@ -8,9 +12,8 @@ def coach_page():
 
     # 左側にはカメラから入力された映像を表示
     with col1:
-        st.markdown("# ここに映像を表示")
-        # 現在の回数を表示
-        st.write(f"現在の回数: {reps}")
+        video_path = "スクワット.mp4"
+        st.video(video_path, start_time=0, format="video/mp4")
 
     with col2:
         # コーチのコメントをチャット形式で表示
