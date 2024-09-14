@@ -6,9 +6,6 @@ sys.path.append(os.pardir)
 from components.instructor import JK_manager, jordge, mesugaki
 
 
-import time
-
-
 def coach_page():
     # 2列に分割
     col1, col2 = st.columns(2)
@@ -22,17 +19,16 @@ def coach_page():
     with col2:
         # コーチのコメントをチャット形式で表示
 
-        st.session_state.input_text = "動きが止まっています。"
+        st.session_state.input_text = "動きが止まっています。"  # ここでYOLOの結果を入れる
         st.markdown(f"# コーチ : {st.session_state.coach}")
+
+        # YOLOでイベントが起きたらこの部分実行
         if st.session_state.coach == "ジョージ":
             st.markdown(jordge.jordge(st.session_state.input_text))
         elif st.session_state.coach == "JK":
             st.markdown(JK_manager.JK_manager(st.session_state.input_text))
         elif st.session_state.coach == "メスガキ":
             st.markdown(mesugaki.mesugaki(st.session_state.input_text))
-
-        # 1秒待機
-        time.sleep(1)
 
     # トレーニング終了ボタン
     if st.button("トレーニング終了"):
