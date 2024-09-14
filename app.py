@@ -1,5 +1,9 @@
 import streamlit as st
+import os, sys
+
+sys.path.append(os.pardir)
 from components import coach
+
 
 st.set_page_config(layout="wide")
 
