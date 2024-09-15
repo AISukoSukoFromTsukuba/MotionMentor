@@ -3,7 +3,7 @@ import json
 import pyaudio
 
 
-def vvox_test(text: str, speaker: int):
+def vvox_test(text: str, speaker: int, speed: float):
     # エンジン起動時に表示されているIP、portを指定
     host = "127.0.0.1"
     port = 50021
@@ -16,7 +16,7 @@ def vvox_test(text: str, speaker: int):
 
     # 音声合成用のクエリ作成
     query = requests.post(f"http://{host}:{port}/audio_query", params=params).json()
-    query["speedScale"] = 1.5
+    query["speedScale"] = speed
 
     # 音声合成を実施
     synthesis = requests.post(

@@ -24,8 +24,8 @@ prev_tmp_count = 0
 
 if "squatcount" not in st.session_state:
     st.session_state.count = 0
-    st.session_state.inner_thigh = ""
-    st.session_state.leg_degree = ""
+
+
 
 lock = threading.Lock()
 
@@ -138,7 +138,6 @@ def detect(keypoints, image_buffer):
     hip_knee_ankle_ratio_right = length_vec_hip_rightknee/length_vec_ankle_rightknee
 
     rad = arccos2(length_vec_hip_rightknee,length_vec_ankle_rightknee,inner_product)
-    print(hip_knee_ankle_ratio_left,hip_knee_ankle_ratio_right)
     degreeRight = np.rad2deg(rad)     
 
     if abs(keypoints["nose"]["x"] - keypoints["wristLeft"]["x"]) < 100 and abs(keypoints["nose"]["x"] - keypoints["wristRight"]["x"]) < 100 and abs(keypoints["nose"]["y"] - keypoints["wristLeft"]["y"]) < 100 and abs(keypoints["nose"]["y"] - keypoints["wristRight"]["y"]) < 100:
@@ -202,11 +201,11 @@ def detect(keypoints, image_buffer):
     x_left, y_left = vec_hip_leftknee
     x_right, y_right = vec_hip_rightknee
     if abs(x_left) > 30 and abs(x_right) > 30:
-        st.session_state.inner_thigh = "スクワット完璧だって"
+        st.session_state.inner_thigh = "完璧"
     elif abs(x_left) > 15 and abs(x_right) > 15:
-        st.session_state.inner_thigh = "もっと足広げて"
+        st.session_state.inner_thigh = "足幅狭い"
     else:
-        st.session_state.inner_thigh = "内股すぎるって厳しいって"
+        st.session_state.inner_thigh = "内股"
 
 
 model = YOLO("yolov8n-pose.pt")
@@ -239,42 +238,64 @@ def coach_page():
     if 'coach_event' not in st.session_state:
         st.session_state.coach_event = False
 
+    if "inner_thigh" not in st.session_state:
+        st.session_state.inner_thigh = ""
+
+    if "leg_degree" not in st.session_state:
+        st.session_state.leg_degree = ""
+
     webrtc_streamer(key="example", video_frame_callback=callback)
+    col1, col2 = st.columns(2)  # 2列のコンテナを用意する
+    with col1:
+        if st.session_state.coach == "ジョージ":
+            image = cv2.imread("components\coach_images\jordge.jpg")
+        elif st.session_state.coach == "JK":
+            image = cv2.imread("components\coach_images\jordge.jpg")
+        elif st.session_state.coach == "メスガキ":
+            image = cv2.imread("components\coach_images\jordge.jpg")
 
-    print("webrtc")
+        image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
 
-    print("session_state")
-
-    with st.empty():
-        while True:
-            st.write(f">>{tmp_count}")
-            time.sleep(0.3)
-            if tmp_count != 0 and tmp_count % 3 == 0:
+        st.image(image,width=200)
+    with col2:
+        with st.empty():
+            while True:
+                st.markdown(f'<p style="font-size: 50px;">回数：{tmp_count}/{st.session_state.reps}</p>', unsafe_allow_html=True)
+                count_chop = st.session_state.reps // 3
+                if tmp_count != 0 and tmp_count % count_chop == 0:
+                    st.session_state.coach_event = True
+                    prev_tmp_count = tmp_count
+                else:
+                    time.sleep(0.3)
                 if st.session_state.reps <= tmp_count:
                     st.session_state.coach_event = False
                     break
-                st.session_state.coach_event = True
-                prev_tmp_count = tmp_count
-            print("prev_tmp_count")
-            if st.session_state.coach_event:
-                input_text = f"{st.session_state.train_menu}を{tmp_count}回行いました。"
-                print(input_text)
-                st.markdown(f"# コーチ : {st.session_state.coach}")
-                if st.session_state.coach == "ジョージ":
-                    coach_comment = jordge.jordge(input_text)
-                    st.markdown(coach_comment)
-                    vvox_test(coach_comment, 3)
-                    st.session_state.coach_event = False
-                elif st.session_state.coach == "JK":
-                    coach_comment = JK_manager.JK_manager(input_text)
-                    st.markdown(coach_comment)
-                    vvox_test(coach_comment, 2)
-                    st.session_state.coach_event = False
-                elif st.session_state.coach == "メスガキ":
-                    coach_comment = mesugaki.mesugaki(input_text)
-                    st.markdown(coach_comment)
-                    vvox_test(coach_comment, 1)
-                    st.session_state.coach_event = False
+
+                if st.session_state.coach_event:
+                    print(st.session_state.inner_thigh)
+                    input_text = f"""
+                    トレーニングメニュー: {st.session_state.train_menu}
+                    現在の回数:{tmp_count}
+                    目標回数:{st.session_state.reps}
+                    姿勢の状態: {st.session_state.inner_thigh}
+                    """
+                    #st.markdown(f"# コーチ : {st.session_state.coach}")
+                    if st.session_state.coach == "ジョージ":
+                        coach_comment = jordge.jordge(input_text)
+                        #st.markdown(coach_comment)
+                        vvox_test(coach_comment, 11, 1.1)
+                        st.session_state.coach_event = False
+                    elif st.session_state.coach == "JK":
+                        coach_comment = JK_manager.JK_manager(input_text)
+                        #st.markdown(coach_comment)
+                        vvox_test(coach_comment, 2, 1.1)
+                        st.session_state.coach_event = False
+                    elif st.session_state.coach == "メスガキ":
+                        coach_comment = mesugaki.mesugaki(input_text)
+                        #st.markdown(coach_comment)
+                        vvox_test(coach_comment, 3, 1.1)
+                        st.session_state.coach_event = False
+    
 
     if st.button("トレーニング終了"):
         st.write("お疲れ様でした！！！")
@@ -286,7 +307,7 @@ def callback(frame):
     global tmp_count
     img = frame.to_ndarray(format="bgr24")
 
-    results = model.predict(img, device = "c", show_boxes = False, show_labels = False, classes = [0])
+    results = model.predict(img, device = "cuda", show_boxes = False, show_labels = False, classes = [0])
 
     annotatedFrame = results[0][0].plot(labels = False, boxes = False, probs = False)
 
