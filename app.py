@@ -1,7 +1,11 @@
 import streamlit as st
+import os, sys
+
+#sys.path.append(os.pardir)
 from components import coach
 
-st.set_page_config(layout="wide")
+
+st.set_page_config()
 
 
 def main_page():
@@ -10,7 +14,7 @@ def main_page():
     st.session_state.train_menu = st.selectbox("種目", ["スクワット", "腕立て伏せ"])
 
     # 回数をテキストボックスで入力
-    st.session_state.reps = st.text_input("回数", 10)
+    st.session_state.reps = int(st.text_input("回数", 10))
 
     # コーチの選択
     st.session_state.coach = st.selectbox("コーチ", ["ジョージ", "JK", "メスガキ"])

@@ -15,14 +15,15 @@ def vvox_test(text: str, speaker: int):
     )
 
     # 音声合成用のクエリ作成
-    query = requests.post(f"http://{host}:{port}/audio_query", params=params)
+    query = requests.post(f"http://{host}:{port}/audio_query", params=params).json()
+    query["speedScale"] = 1.5
 
     # 音声合成を実施
     synthesis = requests.post(
         f"http://{host}:{port}/synthesis",
         headers={"Content-Type": "application/json"},
         params=params,
-        data=json.dumps(query.json()),
+        data=json.dumps(query),
     )
 
     # 再生処理
