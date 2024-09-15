@@ -1,6 +1,7 @@
 # MotionMentor
 
 # Usage
+requirements: python3.8
 ```bash
 $ streamlit run app.py
 ```
