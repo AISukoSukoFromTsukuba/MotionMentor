@@ -10,13 +10,13 @@ import threading
 import time
 sys.path.append(os.pardir)
 from components.coach_voice_generator import vvox_test
-
+from components.instructor import jordge,JK_manager, mesugaki
 tmp_count = 0
 form_check_start = 0
 form_check_cancel = 0
 flag_check_start = 0
 flag = 0
-
+prev_tmp_count = 0
 
 if "squatcount" not in st.session_state:
     st.session_state.count = 0
@@ -64,6 +64,7 @@ def detect(keypoints, image_buffer):
     global form_check_cancel
     global flag_check_start
     global tmp_count
+    global prev_tmp_count
 
 
         # 左右の肩と踵のx軸方向の距離が閾値を下回った時にform_check_startをインクリメント
@@ -150,6 +151,7 @@ def detect(keypoints, image_buffer):
     if hip_knee_ankle_ratio_left < 0.8 and hip_knee_ankle_ratio_right < 0.8 and flag == 1:
         flag = 0
         with lock:
+            prev_tmp_count = tmp_count
             tmp_count += 1
     elif hip_knee_ankle_ratio_left > 1.0 and hip_knee_ankle_ratio_right > 1.0:
         flag = 1
@@ -166,9 +168,9 @@ def detect(keypoints, image_buffer):
         cv2.FONT_HERSHEY_DUPLEX, 5, (255, 255, 255), 30, cv2.LINE_AA)
         cv2.putText(image_buffer, "Count Cancel!", (560, 590), 
         cv2.FONT_HERSHEY_DUPLEX, 5, (0, 50, 255), 20, cv2.LINE_AA)   """ 
-        flag_check_start = 0 # 開始時のカウントダウン（肩と踵の位置チェック）に使うフラグ
-        with lock:
-            tmp_count = 0
+    #    flag_check_start = 0 # 開始時のカウントダウン（肩と踵の位置チェック）に使うフラグ
+    #    with lock:
+    #        tmp_count = 0
         flag = 0 # カウント時に使うフラグを0にする 
     
 """     print(round(degreeLeft),round(degreeLeft))
@@ -203,52 +205,53 @@ KEYPOINTS_NAMES = [
 
 def coach_page():
     global tmp_count
+    global prev_tmp_count
     # 2列に分割
-    col1, col2 = st.columns(2)
     reps = 0
     if 'coach_event' not in st.session_state:
         st.session_state.coach_event = False
 
     # 左側にはカメラから入力された映像を表示
-    with col1:
-        webrtc_streamer(key="example", video_frame_callback=callback)
-        with st.empty():
-            while True:
+    webrtc_streamer(key="example", video_frame_callback=callback)
+
+    print("webrtc")
+
+    print("session_state")
+
+    with st.empty():
+        while True:
+            st.write(f">>{tmp_count}")
+            time.sleep(0.3)
+            if tmp_count != 0 and tmp_count % 3 == 0:
+                if st.session_state.reps <= tmp_count:
+                    st.session_state.coach_event = False
+                    break
+                st.session_state.coach_event = True
                 prev_tmp_count = tmp_count
-                st.write(f">>{tmp_count}")
-                time.sleep(0.1)
+            print("prev_tmp_count")
+            if st.session_state.coach_event:
+                input_text = f"{st.session_state.train_menu}を{tmp_count}回行いました。"
+                print(input_text)
+                st.markdown(f"# コーチ : {st.session_state.coach}")
+                if st.session_state.coach == "ジョージ":
+                    coach_comment = jordge.jordge(input_text)
+                    st.markdown(coach_comment)
+                    vvox_test(coach_comment, 3)
+                    st.session_state.coach_event = False
+                elif st.session_state.coach == "JK":
+                    coach_comment = JK_manager.JK_manager(input_text)
+                    st.markdown(coach_comment)
+                    vvox_test(coach_comment, 2)
+                    st.session_state.coach_event = False
+                elif st.session_state.coach == "メスガキ":
+                    coach_comment = mesugaki.mesugaki(input_text)
+                    st.markdown(coach_comment)
+                    vvox_test(coach_comment, 1)
+                    st.session_state.coach_event = False
 
-
-
-    # with col2:
-    #     with st.empty():
-    #         while True:
-    #             st.write(f">>{tmp_count}")
-    #             time.sleep(0.1)
-    #     if tmp_count - prev_tmp_count > 0:
-    #         st.session_state.coach_event = True
-    #     # コーチのコメントをチャット形式で表示
-    #     if st.session_state.coach_event:
-    #         st.session_state.input_text = f"{st.session_state.train_menu}を{tmp_count}回行いました。"
-    #         st.markdown(f"# コーチ : {st.session_state.coach}")
-    #         if st.session_state.coach == "ジョージ":
-    #             coach_comment = jordge.jordge(st.session_state.input_text)
-    #             st.markdown(coach_comment)
-    #             vvox_test(coach_comment, 3)
-    #             st.session_state.coach_event = False
-    #         elif st.session_state.coach == "JK":
-    #             coach_comment = jk.jk(st.session_state.input_text)
-    #             st.markdown(coach_comment)
-    #             vvox_test(coach_comment, 2)
-    #             st.session_state.coach_event = False
-    #         elif st.session_state.coach == "メスガキ":
-    #             coach_comment = mesugaki.mesugaki(st.session_state.input_text)
-    #             st.markdown(coach_comment)
-    #             vvox_test(coach_comment, 1)
-    #             st.session_state.coach_event = False
-
-    # トレーニング終了ボタン
     if st.button("トレーニング終了"):
+        st.write("お疲れ様でした！！！")
+        time.sleep(3)
         st.session_state.page = "main"
         st.rerun()
 
