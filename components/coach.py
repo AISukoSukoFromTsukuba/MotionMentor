@@ -15,10 +15,15 @@ form_check_start = 0
 form_check_cancel = 0
 flag_check_start = 0
 flag = 0
+mindegreeRight = 0
+mindegreeLeft = 0
+test = ""
 
 
 if "squatcount" not in st.session_state:
     st.session_state.count = 0
+    st.session_state.inner_thigh = ""
+    st.session_state.leg_degree = ""
 
 lock = threading.Lock()
 
@@ -63,6 +68,7 @@ def detect(keypoints, image_buffer):
     global form_check_cancel
     global flag_check_start
     global tmp_count
+    global mindegreeLeft, mindegreeRight, test
 
 
         # 左右の肩と踵のx軸方向の距離が閾値を下回った時にform_check_startをインクリメント
@@ -93,21 +99,20 @@ def detect(keypoints, image_buffer):
     ankleLeft = np.array([keypoints["ankleLeft"]["x"], keypoints["ankleLeft"]["y"]])
 
     # 膝を中心として、腰・足首からのベクトルを計算                    
-    vec_hip_knee = hipLeft - kneeLeft
-    vec_ankle_knee = ankleLeft - kneeLeft
+    vec_hip_leftknee = hipLeft - kneeLeft
+    vec_ankle_leftknee = ankleLeft - kneeLeft
 
     # ベクトルから角度を計算                    
-    length_vec_hip_knee = np.linalg.norm(vec_hip_knee)
-    length_vec_ankle_knee = np.linalg.norm(vec_ankle_knee)
+    length_vec_hip_leftknee = np.linalg.norm(vec_hip_leftknee)
+    length_vec_ankle_leftknee = np.linalg.norm(vec_ankle_leftknee)
 
-    hip_knee_ankle_ratio_left = length_vec_hip_knee/length_vec_ankle_knee
+    hip_knee_ankle_ratio_left = length_vec_hip_leftknee/length_vec_ankle_leftknee
 
+    inner_product = np.inner(vec_hip_leftknee, vec_ankle_leftknee)
 
-    inner_product = np.inner(vec_hip_knee, vec_ankle_knee)
+    rad = arccos2(length_vec_hip_leftknee,length_vec_ankle_leftknee,inner_product)
 
-    rad = arccos2(length_vec_hip_knee,length_vec_ankle_knee,inner_product)
-
-    #cos = inner_product / (length_vec_hip_knee * length_vec_ankle_knee)
+    #cos = inner_product / (length_vec_hip_leftknee * length_vec_ankle_leftknee)
     #rad = np.arccos(cos)
     degreeLeft = np.rad2deg(rad)
 
@@ -118,17 +123,17 @@ def detect(keypoints, image_buffer):
     ankleRight = np.array([keypoints["ankleRight"]["x"], keypoints["ankleRight"]["y"]])
 
     # 膝を中心として、腰・足首からのベクトルを計算 
-    vec_hip_knee = hipRight - kneeRight
-    vec_ankle_knee = ankleRight - kneeRight
+    vec_hip_rightknee = hipRight - kneeRight
+    vec_ankle_rightknee = ankleRight - kneeRight
 
     # ベクトルから角度を計算                      
-    length_vec_hip_knee = np.linalg.norm(vec_hip_knee)
-    length_vec_ankle_knee = np.linalg.norm(vec_ankle_knee)
-    inner_product = np.inner(vec_hip_knee, vec_ankle_knee)
+    length_vec_hip_rightknee = np.linalg.norm(vec_hip_rightknee)
+    length_vec_ankle_rightknee = np.linalg.norm(vec_ankle_rightknee)
+    inner_product = np.inner(vec_hip_rightknee, vec_ankle_rightknee)
 
-    hip_knee_ankle_ratio_right = length_vec_hip_knee/length_vec_ankle_knee
+    hip_knee_ankle_ratio_right = length_vec_hip_rightknee/length_vec_ankle_rightknee
 
-    rad = arccos2(length_vec_hip_knee,length_vec_ankle_knee,inner_product)
+    rad = arccos2(length_vec_hip_rightknee,length_vec_ankle_rightknee,inner_product)
     print(hip_knee_ankle_ratio_left,hip_knee_ankle_ratio_right)
     degreeRight = np.rad2deg(rad)     
 
@@ -146,12 +151,23 @@ def detect(keypoints, image_buffer):
 
     # 鼻と左手首・右手首が一定の距離にある場合にform_check_cancelをインクリメント
 
+    mindegreeRight = min(degreeRight, mindegreeRight)
+    mindegreeLeft = min(degreeLeft, mindegreeLeft)
     if hip_knee_ankle_ratio_left < 0.8 and hip_knee_ankle_ratio_right < 0.8 and flag == 1:
         flag = 0
         with lock:
             tmp_count += 1
+            if mindegreeRight < 90 and mindegreeLeft < 90:
+                test = "膝曲がってるね～いいね～"
+            elif mindegreeRight < 100 and mindegreeLeft < 100:
+                test = "膝が伸びてきてるよ"
+            else:
+                test = "膝が伸びすぎだって、きびしいって"
     elif hip_knee_ankle_ratio_left > 1.0 and hip_knee_ankle_ratio_right > 1.0:
         flag = 1
+        mindegreeRight = 180
+        mindegreeLeft = 180
+        
      # 鼻と左手首・右手首が一定の距離にある状態が1秒以内
     if form_check_cancel > 0 and form_check_cancel <= 60:
         pass
@@ -170,12 +186,22 @@ def detect(keypoints, image_buffer):
             tmp_count = 0
         flag = 0 # カウント時に使うフラグを0にする 
     
-"""     print(round(degreeLeft),round(degreeLeft))
+    """print(round(degreeLeft),round(degreeLeft))
     if round(degreeRight) < 170 and round(degreeRight) > 130 and round(degreeLeft) < 170 and round(degreeLeft) > 130 and flag == 1:
         flag = 0
         squatcount += 1
     elif round(degreeRight) < 110 and round(degreeLeft) < 110 and flag == 0 and flag_check_start == 1:
         flag = 1 # 膝の角度が110度以下になるとカウント（撮影角度によって実際の角度と異なるため90より大きめ） """
+    
+    # 姿勢分析
+    x_left, y_left = vec_hip_leftknee
+    x_right, y_right = vec_hip_rightknee
+    if abs(x_left) > 30 and abs(x_right) > 30:
+        st.session_state.inner_thigh = "スクワット完璧だって"
+    elif abs(x_left) > 15 and abs(x_right) > 15:
+        st.session_state.inner_thigh = "もっと足広げて"
+    else:
+        st.session_state.inner_thigh = "内股すぎるって厳しいって"
 
 
 sys.path.append(os.pardir)
@@ -203,7 +229,7 @@ KEYPOINTS_NAMES = [
 ]
 
 def coach_page():
-    global tmp_count
+    global tmp_count, test
     # 2列に分割
     col1, col2 = st.columns(2)
     reps = 0
@@ -215,7 +241,8 @@ def coach_page():
         webrtc_streamer(key="example", video_frame_callback=callback)
         with st.empty():
             while True:
-                st.write(f">>{tmp_count}")
+                st.write(f"{tmp_count}")
+                st.write(f"{test}")
                 time.sleep(0.1)
 
     with col2:
@@ -233,8 +260,7 @@ def coach_page():
 def callback(frame):
     global tmp_count
     img = frame.to_ndarray(format="bgr24")
-    results = model.predict(img, device = "cuda", show_boxes = False, show_labels = False, classes = [0])
-
+    results = model.predict(img, device = "cpu", show_boxes = False, show_labels = False, classes = [0])
     annotatedFrame = results[0][0].plot(labels = False, boxes = False, probs = False)
 
     # 検出オブジェクトの名前、バウンディングボックス座標を取得
