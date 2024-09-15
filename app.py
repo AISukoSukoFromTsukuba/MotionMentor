@@ -9,8 +9,29 @@ st.set_page_config()
 
 
 def main_page():
-    st.markdown("## MotionMentor")
-    st.write("あなたの筋トレをサポートします。")
+    st.markdown('<p style="font-size: 60px;">MotionMentor</p>', unsafe_allow_html=True)
+    st.markdown('<p style="font-family:UD Digi Kyokasho NK-R;font-size: 30px;">あなたの筋トレをサポートします。</p>', unsafe_allow_html=True)
+    tabs_font_css = """
+    <style>
+    div[class*="stSelectbox"] label p {
+    font-size: 30px;
+    font-family:UD Digi Kyokasho NK-R;
+    }
+    div[class*="row-widget"] label p {
+    font-family:UD Digi Kyokasho NK-R;
+    }
+    div[class*="stTextInput"] label p {
+    font-size: 30px;
+    font-family:UD Digi Kyokasho NK-R;
+    }
+    div[class*="stButton"] label p {
+    font-size: 30px;
+    font-family:UD Digi Kyokasho NK-R;
+    }
+    </style>
+    """
+
+    st.write(tabs_font_css, unsafe_allow_html=True)
     st.session_state.train_menu = st.selectbox("種目", ["スクワット", "腕立て伏せ"])
 
     # 回数をテキストボックスで入力
