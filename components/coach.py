@@ -20,7 +20,7 @@ mindegreeRight = 0
 mindegreeLeft = 0
 test = ""
 prev_tmp_count = 0
-
+inner_thigh = "完璧"
 
 if "squatcount" not in st.session_state:
     st.session_state.count = 0
@@ -72,7 +72,7 @@ def detect(keypoints, image_buffer):
     global tmp_count
     global mindegreeLeft, mindegreeRight, test
     global prev_tmp_count
-
+    global inner_thigh
 
 
         # 左右の肩と踵のx軸方向の距離が閾値を下回った時にform_check_startをインクリメント
@@ -200,12 +200,14 @@ def detect(keypoints, image_buffer):
     # 姿勢分析
     x_left, y_left = vec_hip_leftknee
     x_right, y_right = vec_hip_rightknee
-    if abs(x_left) > 30 and abs(x_right) > 30:
-        st.session_state.inner_thigh = "完璧"
-    elif abs(x_left) > 15 and abs(x_right) > 15:
-        st.session_state.inner_thigh = "足幅狭い"
-    else:
-        st.session_state.inner_thigh = "内股"
+    with lock:
+        print("---------------------------inner_thigh-----------------------------------------------------------")
+        if abs(x_left) > 20 and abs(x_right) > 20:
+            inner_thigh= "完璧"
+        elif abs(x_left) > 10 and abs(x_right) > 10:
+            inner_thigh = "足幅狭い"
+        else:
+            inner_thigh = "内股"
 
 
 model = YOLO("yolov8n-pose.pt")
@@ -233,13 +235,11 @@ KEYPOINTS_NAMES = [
 def coach_page():
     global tmp_count, test
     global prev_tmp_count
+    global inner_thigh
     # 2列に分割
     reps = 0
     if 'coach_event' not in st.session_state:
         st.session_state.coach_event = False
-
-    if "inner_thigh" not in st.session_state:
-        st.session_state.inner_thigh = ""
 
     if "leg_degree" not in st.session_state:
         st.session_state.leg_degree = ""
@@ -250,9 +250,9 @@ def coach_page():
         if st.session_state.coach == "ジョージ":
             image = cv2.imread("components\coach_images\jordge.jpg")
         elif st.session_state.coach == "JK":
-            image = cv2.imread("components\coach_images\jordge.jpg")
+            image = cv2.imread("components\coach_images\JK.jpg")
         elif st.session_state.coach == "メスガキ":
-            image = cv2.imread("components\coach_images\jordge.jpg")
+            image = cv2.imread("components\coach_images\mesugaki.jpg")
 
         image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
 
@@ -260,7 +260,7 @@ def coach_page():
     with col2:
         with st.empty():
             while True:
-                st.markdown(f'<p style="font-size: 50px;">回数：{tmp_count}/{st.session_state.reps}</p>', unsafe_allow_html=True)
+                st.markdown(f'<p style="font-size: 40px;">回数：{tmp_count}/{st.session_state.reps}<br>フォーム：{inner_thigh}</p>', unsafe_allow_html=True)
                 count_chop = st.session_state.reps // 3
                 if tmp_count != 0 and tmp_count % count_chop == 0:
                     st.session_state.coach_event = True
@@ -272,12 +272,12 @@ def coach_page():
                     break
 
                 if st.session_state.coach_event:
-                    print(st.session_state.inner_thigh)
+                    #st.markdown(inner_thigh)
                     input_text = f"""
                     トレーニングメニュー: {st.session_state.train_menu}
                     現在の回数:{tmp_count}
                     目標回数:{st.session_state.reps}
-                    姿勢の状態: {st.session_state.inner_thigh}
+                    姿勢の状態: {inner_thigh}
                     """
                     #st.markdown(f"# コーチ : {st.session_state.coach}")
                     if st.session_state.coach == "ジョージ":

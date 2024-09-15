@@ -10,7 +10,7 @@ st.set_page_config()
 
 def main_page():
     st.markdown('<p style="font-size: 60px;">MotionMentor</p>', unsafe_allow_html=True)
-    st.markdown('<p style="font-family:UD Digi Kyokasho NK-R;font-size: 36px;">あなたの筋トレをサポートします。</p>', unsafe_allow_html=True)
+    st.markdown('<p style="font-family:UD Digi Kyokasho NK-R;font-size: 30px;">あなたの筋トレをサポートします。</p>', unsafe_allow_html=True)
     tabs_font_css = """
     <style>
     div[class*="stSelectbox"] label p {
