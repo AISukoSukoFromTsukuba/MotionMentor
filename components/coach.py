@@ -15,14 +15,17 @@ form_check_start = 0
 form_check_cancel = 0
 flag_check_start = 0
 flag = 0
-mindegreeRight = 0
-mindegreeLeft = 0
-test = ""
+mindegreeRight = 180
+mindegreeLeft = 180
 
 
 if "squatcount" not in st.session_state:
     st.session_state.count = 0
+
+if "inner_thigh" not in st.session_state:
     st.session_state.inner_thigh = ""
+    
+if "leg_degree" not in st.session_state:
     st.session_state.leg_degree = ""
 
 lock = threading.Lock()
@@ -151,22 +154,29 @@ def detect(keypoints, image_buffer):
 
     # 鼻と左手首・右手首が一定の距離にある場合にform_check_cancelをインクリメント
 
-    mindegreeRight = min(degreeRight, mindegreeRight)
-    mindegreeLeft = min(degreeLeft, mindegreeLeft)
-    if hip_knee_ankle_ratio_left < 0.8 and hip_knee_ankle_ratio_right < 0.8 and flag == 1:
-        flag = 0
-        with lock:
-            tmp_count += 1
-            if mindegreeRight < 90 and mindegreeLeft < 90:
-                test = "膝曲がってるね～いいね～"
-            elif mindegreeRight < 100 and mindegreeLeft < 100:
-                test = "膝が伸びてきてるよ"
-            else:
-                test = "膝が伸びすぎだって、きびしいって"
+    if hip_knee_ankle_ratio_left < 0.8 and hip_knee_ankle_ratio_right < 0.8:
+        if flag == 1:
+            flag = 0
+            with lock:
+                tmp_count += 1
+
+        mindegreeRight = min(degreeRight, mindegreeRight)
+        mindegreeLeft = min(degreeLeft, mindegreeLeft)
     elif hip_knee_ankle_ratio_left > 1.0 and hip_knee_ankle_ratio_right > 1.0:
+        if flag == 0 and tmp_count > 0:
+            with lock:
+                if mindegreeRight < 85 and mindegreeLeft < 85:
+                    st.session_state.leg_degree = "座っていると感じられるほど膝が曲がりすぎている状態"
+                elif mindegreeRight < 100 and mindegreeLeft < 100:
+                    st.session_state.leg_degree = "膝がほどよく曲がっていてとてもいい状態"
+                elif mindegreeRight < 120 and mindegreeLeft < 120:
+                    st.session_state.leg_degree = "膝の曲がりが中途半端で足が伸びている状態"
+                else:
+                    st.session_state.leg_degree = "膝の曲がりが不十分で、もう少し曲げるべき状態"
+                mindegreeRight = 180
+                mindegreeLeft = 180
+        
         flag = 1
-        mindegreeRight = 180
-        mindegreeLeft = 180
         
      # 鼻と左手首・右手首が一定の距離にある状態が1秒以内
     if form_check_cancel > 0 and form_check_cancel <= 60:
@@ -196,12 +206,13 @@ def detect(keypoints, image_buffer):
     # 姿勢分析
     x_left, y_left = vec_hip_leftknee
     x_right, y_right = vec_hip_rightknee
-    if abs(x_left) > 30 and abs(x_right) > 30:
-        st.session_state.inner_thigh = "スクワット完璧だって"
-    elif abs(x_left) > 15 and abs(x_right) > 15:
-        st.session_state.inner_thigh = "もっと足広げて"
-    else:
-        st.session_state.inner_thigh = "内股すぎるって厳しいって"
+    with lock:
+        if abs(x_left) > 30 and abs(x_right) > 30:
+            st.session_state.inner_thigh = "スクワット完璧だって"
+        elif abs(x_left) > 15 and abs(x_right) > 15:
+            st.session_state.inner_thigh = "もっと足広げて"
+        else:
+            st.session_state.inner_thigh = "内股すぎるって厳しいって"
 
 
 sys.path.append(os.pardir)
@@ -229,7 +240,7 @@ KEYPOINTS_NAMES = [
 ]
 
 def coach_page():
-    global tmp_count, test
+    global tmp_count
     # 2列に分割
     col1, col2 = st.columns(2)
     reps = 0
@@ -242,7 +253,6 @@ def coach_page():
         with st.empty():
             while True:
                 st.write(f"{tmp_count}")
-                st.write(f"{test}")
                 time.sleep(0.1)
 
     with col2:
