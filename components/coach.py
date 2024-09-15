@@ -8,14 +8,15 @@ import numpy as np
 from ultralytics import YOLO
 import threading
 import time
-
-
+sys.path.append(os.pardir)
+from components.coach_voice_generator import vvox_test
+from components.instructor import jordge,JK_manager, mesugaki
 tmp_count = 0
 form_check_start = 0
 form_check_cancel = 0
 flag_check_start = 0
 flag = 0
-
+prev_tmp_count = 0
 
 if "squatcount" not in st.session_state:
     st.session_state.count = 0
@@ -63,6 +64,7 @@ def detect(keypoints, image_buffer):
     global form_check_cancel
     global flag_check_start
     global tmp_count
+    global prev_tmp_count
 
 
         # 左右の肩と踵のx軸方向の距離が閾値を下回った時にform_check_startをインクリメント
@@ -149,6 +151,7 @@ def detect(keypoints, image_buffer):
     if hip_knee_ankle_ratio_left < 0.8 and hip_knee_ankle_ratio_right < 0.8 and flag == 1:
         flag = 0
         with lock:
+            prev_tmp_count = tmp_count
             tmp_count += 1
     elif hip_knee_ankle_ratio_left > 1.0 and hip_knee_ankle_ratio_right > 1.0:
         flag = 1
@@ -165,9 +168,9 @@ def detect(keypoints, image_buffer):
         cv2.FONT_HERSHEY_DUPLEX, 5, (255, 255, 255), 30, cv2.LINE_AA)
         cv2.putText(image_buffer, "Count Cancel!", (560, 590), 
         cv2.FONT_HERSHEY_DUPLEX, 5, (0, 50, 255), 20, cv2.LINE_AA)   """ 
-        flag_check_start = 0 # 開始時のカウントダウン（肩と踵の位置チェック）に使うフラグ
-        with lock:
-            tmp_count = 0
+    #    flag_check_start = 0 # 開始時のカウントダウン（肩と踵の位置チェック）に使うフラグ
+    #    with lock:
+    #        tmp_count = 0
         flag = 0 # カウント時に使うフラグを0にする 
     
 """     print(round(degreeLeft),round(degreeLeft))
@@ -177,8 +180,6 @@ def detect(keypoints, image_buffer):
     elif round(degreeRight) < 110 and round(degreeLeft) < 110 and flag == 0 and flag_check_start == 1:
         flag = 1 # 膝の角度が110度以下になるとカウント（撮影角度によって実際の角度と異なるため90より大きめ） """
 
-
-sys.path.append(os.pardir)
 
 model = YOLO("yolov8n-pose.pt")
 
@@ -204,36 +205,61 @@ KEYPOINTS_NAMES = [
 
 def coach_page():
     global tmp_count
+    global prev_tmp_count
     # 2列に分割
-    col1, col2 = st.columns(2)
     reps = 0
+    if 'coach_event' not in st.session_state:
+        st.session_state.coach_event = False
 
     # 左側にはカメラから入力された映像を表示
-    with col1:
-        video_path = "スクワット.mp4"
-        #st.video(video_path, start_time=0, format="video/mp4")
-        webrtc_streamer(key="example", video_frame_callback=callback)
-        with st.empty():
-            while True:
-                st.write(f">>{tmp_count}")
-                time.sleep(0.1)
+    webrtc_streamer(key="example", video_frame_callback=callback)
 
-    with col2:
-        # コーチのコメントをチャット形式で表示
-        st.markdown("# コーチ")
-        st.write("ジョージ: いい感じだよ！")
-        st.write("JK: もうちょっと頑張れ！")
-        st.write("メスガキ: まだまだだね！")
+    print("webrtc")
 
-    # トレーニング終了ボタン
+    print("session_state")
+
+    with st.empty():
+        while True:
+            st.write(f">>{tmp_count}")
+            time.sleep(0.3)
+            if tmp_count != 0 and tmp_count % 3 == 0:
+                if st.session_state.reps <= tmp_count:
+                    st.session_state.coach_event = False
+                    break
+                st.session_state.coach_event = True
+                prev_tmp_count = tmp_count
+            print("prev_tmp_count")
+            if st.session_state.coach_event:
+                input_text = f"{st.session_state.train_menu}を{tmp_count}回行いました。"
+                print(input_text)
+                st.markdown(f"# コーチ : {st.session_state.coach}")
+                if st.session_state.coach == "ジョージ":
+                    coach_comment = jordge.jordge(input_text)
+                    st.markdown(coach_comment)
+                    vvox_test(coach_comment, 3)
+                    st.session_state.coach_event = False
+                elif st.session_state.coach == "JK":
+                    coach_comment = JK_manager.JK_manager(input_text)
+                    st.markdown(coach_comment)
+                    vvox_test(coach_comment, 2)
+                    st.session_state.coach_event = False
+                elif st.session_state.coach == "メスガキ":
+                    coach_comment = mesugaki.mesugaki(input_text)
+                    st.markdown(coach_comment)
+                    vvox_test(coach_comment, 1)
+                    st.session_state.coach_event = False
+
     if st.button("トレーニング終了"):
+        st.write("お疲れ様でした！！！")
+        time.sleep(3)
         st.session_state.page = "main"
         st.rerun()
 
 def callback(frame):
     global tmp_count
     img = frame.to_ndarray(format="bgr24")
-    results = model.predict(img, device = "cuda", show_boxes = False, show_labels = False, classes = [0])
+    # results = model.predict(img, device = "cuda", show_boxes = False, show_labels = False, classes = [0])
+    results = model.predict(img, device = "cpu", show_boxes = False, show_labels = False, classes = [0])
 
     annotatedFrame = results[0][0].plot(labels = False, boxes = False, probs = False)
 
@@ -276,6 +302,8 @@ def callback(frame):
         y = int(keypoint[0][1])
 
     return av.VideoFrame.from_ndarray(annotatedFrame, format="bgr24")
+
+
 
 if __name__ == "__main__":
     coach_page()

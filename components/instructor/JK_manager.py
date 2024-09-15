@@ -15,6 +15,9 @@ openai.api_key = os.getenv("AZURE_GPT_KEY")
 
 def JK_manager(input=""):
 
+    if input is None or input == "":
+        return "言葉を入れてくれないのはひどいよ；；"
+
     response = openai.ChatCompletion.create(
         engine="gpt-4o-mini",
         messages=[
@@ -43,5 +46,10 @@ def JK_manager(input=""):
         max_tokens=100,
     )
 
-    completion = response["choices"][0]["message"]["content"]
+    if "content" in response["choices"][0]["message"]:
+        completion = response["choices"][0]["message"]["content"]
+    else:
+        print(">>>>>>>>.",response)
+        completion = "エラーが出ちゃったよぉ・・・"
+
     return completion
